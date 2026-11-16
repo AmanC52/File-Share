@@ -1,6 +1,7 @@
 package com.antigravity.fileshare;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Environment;
 import android.webkit.MimeTypeMap;
 import org.json.JSONArray;
@@ -9,6 +10,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,6 +23,7 @@ public class LocalHttpServer {
     private boolean isRunning = false;
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private final Set<String> connectedClients = Collections.synchronizedSet(new HashSet<>());
+    private final Map<String, byte[]> assetCache = new ConcurrentHashMap<>();
 
     public LocalHttpServer(Context context, int port, File rootDir) {
         this.context = context;
@@ -31,12 +34,14 @@ public class LocalHttpServer {
     public synchronized void start() throws IOException {
         if (isRunning) return;
         serverSocket = new ServerSocket(port);
+        serverSocket.setReuseAddress(true);
         isRunning = true;
 
         threadPool.execute(() -> {
             while (isRunning) {
                 try {
                     Socket socket = serverSocket.accept();
+                    socket.setSoTimeout(30000); // 30s timeout
                     String clientIp = socket.getInetAddress().getHostAddress();
                     connectedClients.add(clientIp);
                     threadPool.execute(() -> handleClient(socket));
@@ -58,37 +63,49 @@ public class LocalHttpServer {
         return isRunning;
     }
 
-    public int getClientCount() {
-        return connectedClients.size();
-    }
-
     private void handleClient(Socket socket) {
-        try (InputStream in = socket.getInputStream();
+        try (InputStream rawIn = socket.getInputStream();
              OutputStream out = socket.getOutputStream()) {
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String line = reader.readLine();
-            if (line == null || line.trim().isEmpty()) return;
+            BufferedInputStream in = new BufferedInputStream(rawIn);
 
-            String[] tokens = line.split(" ");
-            if (tokens.length < 2) return;
+            // Read HTTP headers without consuming binary body
+            ByteArrayOutputStream headerBaos = new ByteArrayOutputStream();
+            int prev3 = -1, prev2 = -1, prev1 = -1, curr = -1;
+            while ((curr = in.read()) != -1) {
+                headerBaos.write(curr);
+                if (prev3 == '\r' && prev2 == '\n' && prev1 == '\r' && curr == '\n') {
+                    break;
+                }
+                prev3 = prev2;
+                prev2 = prev1;
+                prev1 = curr;
+            }
 
-            String method = tokens[0];
-            String fullUri = tokens[1];
+            byte[] headerBytes = headerBaos.toByteArray();
+            if (headerBytes.length == 0) return;
+
+            String headerStr = new String(headerBytes, "ISO-8859-1");
+            String[] lines = headerStr.split("\r\n");
+            if (lines.length == 0) return;
+
+            String[] requestLine = lines[0].split(" ");
+            if (requestLine.length < 2) return;
+
+            String method = requestLine[0];
+            String fullUri = requestLine[1];
             String path = fullUri.contains("?") ? fullUri.substring(0, fullUri.indexOf("?")) : fullUri;
             Map<String, String> queryParams = parseQueryParams(fullUri);
 
-            // Read request headers
             Map<String, String> headers = new HashMap<>();
-            String headerLine;
-            while ((headerLine = reader.readLine()) != null && !headerLine.isEmpty()) {
-                int colon = headerLine.indexOf(':');
+            for (int i = 1; i < lines.length; i++) {
+                int colon = lines[i].indexOf(':');
                 if (colon > 0) {
-                    headers.put(headerLine.substring(0, colon).trim().toLowerCase(), headerLine.substring(colon + 1).trim());
+                    headers.put(lines[i].substring(0, colon).trim().toLowerCase(), lines[i].substring(colon + 1).trim());
                 }
             }
 
-            // Route handler
+            // Route Requests
             if (path.equals("/") || path.equals("/index.html")) {
                 serveAsset(out, "web/index.html", "text/html; charset=utf-8");
             } else if (path.startsWith("/static/")) {
@@ -99,6 +116,16 @@ public class LocalHttpServer {
             } else if (path.equals("/api/stream") || path.equals("/api/download")) {
                 boolean asAttachment = path.equals("/api/download");
                 handleStreamOrDownload(out, queryParams.get("path"), headers.get("range"), asAttachment);
+            } else if (path.equals("/api/qr")) {
+                handleQr(out);
+            } else if (path.equals("/api/upload") && method.equalsIgnoreCase("POST")) {
+                handleUpload(in, out, queryParams.get("path"), headers);
+            } else if (path.equals("/api/mkdir") && method.equalsIgnoreCase("POST")) {
+                handleMkdir(in, out, headers);
+            } else if (path.equals("/api/delete") && method.equalsIgnoreCase("DELETE")) {
+                handleDelete(out, queryParams.get("path"));
+            } else if (path.equals("/api/edit") && method.equalsIgnoreCase("POST")) {
+                handleEdit(in, out, headers);
             } else if (path.equals("/api/storage")) {
                 handleStorage(out);
             } else if (path.equals("/api/clients")) {
@@ -113,6 +140,207 @@ public class LocalHttpServer {
         }
     }
 
+    private void handleQr(OutputStream out) throws Exception {
+        String serverUrl = "http://" + NetworkUtils.getLocalIpAddress() + ":" + port;
+        Bitmap qrBitmap = NetworkUtils.generateQrBitmap(serverUrl, 350, 350);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        byte[] pngBytes = baos.toByteArray();
+
+        String header = "HTTP/1.1 200 OK\r\n" +
+                "Content-Type: image/png\r\n" +
+                "Content-Length: " + pngBytes.length + "\r\n" +
+                "Cache-Control: public, max-age=86400\r\n\r\n";
+        out.write(header.getBytes());
+        out.write(pngBytes);
+    }
+
+    private void handleUpload(InputStream in, OutputStream out, String relPath, Map<String, String> headers) throws Exception {
+        String contentType = headers.get("content-type");
+        if (contentType == null || !contentType.contains("boundary=")) {
+            sendJson(out, 400, "{\"error\":\"Missing boundary in multipart request\"}");
+            return;
+        }
+
+        String boundary = contentType.substring(contentType.indexOf("boundary=") + 9).trim();
+        if (boundary.startsWith("\"") && boundary.endsWith("\"")) {
+            boundary = boundary.substring(1, boundary.length() - 1);
+        }
+        byte[] delimiter = ("\r\n--" + boundary).getBytes("ISO-8859-1");
+
+        File targetDir = resolvePath(relPath);
+        if (!targetDir.exists()) targetDir.mkdirs();
+
+        // 1. Skip up to first boundary line
+        readLine(in);
+
+        // 2. Read headers for the file part
+        String filename = "uploaded_file";
+        String line;
+        while ((line = readLine(in)) != null && !line.isEmpty()) {
+            if (line.toLowerCase().startsWith("content-disposition:")) {
+                int fnIdx = line.indexOf("filename=\"");
+                if (fnIdx > 0) {
+                    filename = line.substring(fnIdx + 10);
+                    int endIdx = filename.indexOf("\"");
+                    if (endIdx > 0) filename = filename.substring(0, endIdx);
+                }
+            }
+        }
+
+        // Clean filename of path traversal
+        filename = new File(filename).getName();
+        File dest = new File(targetDir, filename);
+
+        // Handle duplicate names with (1), (2)
+        if (dest.exists()) {
+            String stem = filename;
+            String ext = "";
+            int dot = filename.lastIndexOf('.');
+            if (dot > 0) {
+                stem = filename.substring(0, dot);
+                ext = filename.substring(dot);
+            }
+            int counter = 1;
+            while (dest.exists()) {
+                dest = new File(targetDir, stem + " (" + counter + ")" + ext);
+                counter++;
+            }
+        }
+
+        // 3. Stream file contents until delimiter
+        try (FileOutputStream fos = new FileOutputStream(dest)) {
+            copyUntilBoundary(in, fos, delimiter);
+        }
+
+        long size = dest.length();
+        JSONArray uploaded = new JSONArray();
+        JSONObject item = new JSONObject();
+        item.put("name", dest.getName());
+        item.put("size", size);
+        item.put("size_str", NetworkUtils.formatBytes(size));
+        uploaded.put(item);
+
+        JSONObject response = new JSONObject();
+        response.put("uploaded", uploaded);
+        response.put("errors", new JSONArray());
+        sendJson(out, 200, response.toString());
+    }
+
+    private static void copyUntilBoundary(InputStream in, OutputStream fileOut, byte[] delimiter) throws IOException {
+        int delimLen = delimiter.length;
+        byte[] window = new byte[delimLen];
+        int windowFilled = 0;
+
+        for (int i = 0; i < delimLen; i++) {
+            int c = in.read();
+            if (c == -1) break;
+            window[i] = (byte) c;
+            windowFilled++;
+        }
+
+        while (windowFilled == delimLen) {
+            boolean match = true;
+            for (int i = 0; i < delimLen; i++) {
+                if (window[i] != delimiter[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return; // Reached boundary
+            }
+
+            fileOut.write(window[0]);
+            System.arraycopy(window, 1, window, 0, delimLen - 1);
+
+            int nextByte = in.read();
+            if (nextByte == -1) {
+                windowFilled--;
+                break;
+            }
+            window[delimLen - 1] = (byte) nextByte;
+        }
+
+        for (int i = 0; i < windowFilled; i++) {
+            fileOut.write(window[i]);
+        }
+    }
+
+    private String readLine(InputStream in) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int c;
+        while ((c = in.read()) != -1) {
+            if (c == '\n') break;
+            if (c != '\r') baos.write(c);
+        }
+        return baos.toString("ISO-8859-1");
+    }
+
+    private void handleMkdir(InputStream in, OutputStream out, Map<String, String> headers) throws Exception {
+        int len = Integer.parseInt(headers.getOrDefault("content-length", "0"));
+        byte[] body = new byte[len];
+        int read = 0;
+        while (read < len) {
+            int r = in.read(body, read, len - read);
+            if (r == -1) break;
+            read += r;
+        }
+        JSONObject json = new JSONObject(new String(body, "UTF-8"));
+        String parentRel = json.optString("path", "");
+        String name = json.optString("name", "");
+
+        File parent = resolvePath(parentRel);
+        File newDir = new File(parent, new File(name).getName());
+        boolean success = newDir.mkdirs();
+        sendJson(out, success ? 200 : 500, "{\"success\":" + success + "}");
+    }
+
+    private void handleDelete(OutputStream out, String relPath) throws Exception {
+        File target = resolvePath(relPath);
+        if (!target.exists() || target.equals(rootDir)) {
+            sendJson(out, 400, "{\"error\":\"Cannot delete path\"}");
+            return;
+        }
+        boolean ok = deleteRecursive(target);
+        sendJson(out, ok ? 200 : 500, "{\"success\":" + ok + "}");
+    }
+
+    private boolean deleteRecursive(File f) {
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File c : children) deleteRecursive(c);
+            }
+        }
+        return f.delete();
+    }
+
+    private void handleEdit(InputStream in, OutputStream out, Map<String, String> headers) throws Exception {
+        int len = Integer.parseInt(headers.getOrDefault("content-length", "0"));
+        byte[] body = new byte[len];
+        int read = 0;
+        while (read < len) {
+            int r = in.read(body, read, len - read);
+            if (r == -1) break;
+            read += r;
+        }
+        JSONObject json = new JSONObject(new String(body, "UTF-8"));
+        String relPath = json.optString("path", "");
+        String content = json.optString("content", "");
+
+        File target = resolvePath(relPath);
+        if (!target.exists() || target.isDirectory()) {
+            sendJson(out, 404, "{\"error\":\"File not found\"}");
+            return;
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(target, false)) {
+            fos.write(content.getBytes("UTF-8"));
+        }
+        sendJson(out, 200, "{\"success\":true,\"size\":" + target.length() + ",\"size_str\":\"" + NetworkUtils.formatBytes(target.length()) + "\"}");
+    }
+
     private void handleBrowse(OutputStream out, String relPath) throws Exception {
         File target = resolvePath(relPath);
         if (!target.exists() || !target.isDirectory()) {
@@ -124,8 +352,13 @@ public class LocalHttpServer {
         JSONArray items = new JSONArray();
 
         if (files != null) {
+            Arrays.sort(files, (a, b) -> {
+                if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
+                return a.getName().compareToIgnoreCase(b.getName());
+            });
+
             for (File f : files) {
-                if (f.getName().startsWith(".")) continue; // hide hidden files
+                if (f.getName().startsWith(".")) continue;
                 JSONObject item = new JSONObject();
                 item.put("name", f.getName());
                 item.put("path", getRelativePath(f));
@@ -137,7 +370,6 @@ public class LocalHttpServer {
             }
         }
 
-        // Breadcrumbs
         JSONArray breadcrumbs = new JSONArray();
         String currentRel = getRelativePath(target);
         if (!currentRel.isEmpty()) {
@@ -173,7 +405,6 @@ public class LocalHttpServer {
         String mime = getMimeType(target.getName());
 
         if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-            // HTTP 206 Partial Content (Range request for video/audio seek)
             String[] ranges = rangeHeader.substring(6).split("-");
             long start = Long.parseLong(ranges[0]);
             long end = ranges.length > 1 && !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileLen - 1;
@@ -199,7 +430,6 @@ public class LocalHttpServer {
                 }
             }
         } else {
-            // Full file transfer
             String header = "HTTP/1.1 200 OK\r\n" +
                     "Content-Type: " + mime + "\r\n" +
                     "Content-Length: " + fileLen + "\r\n" +
@@ -248,19 +478,25 @@ public class LocalHttpServer {
     }
 
     private void serveAsset(OutputStream out, String assetPath, String mime) {
-        try (InputStream is = context.getAssets().open(assetPath)) {
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            byte[] data = new byte[16384];
-            int n;
-            while ((n = is.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, n);
+        try {
+            byte[] bytes = assetCache.get(assetPath);
+            if (bytes == null) {
+                try (InputStream is = context.getAssets().open(assetPath)) {
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    byte[] data = new byte[16384];
+                    int n;
+                    while ((n = is.read(data, 0, data.length)) != -1) {
+                        buffer.write(data, 0, n);
+                    }
+                    bytes = buffer.toByteArray();
+                    assetCache.put(assetPath, bytes);
+                }
             }
-            byte[] bytes = buffer.toByteArray();
 
             String header = "HTTP/1.1 200 OK\r\n" +
                     "Content-Type: " + mime + "\r\n" +
                     "Content-Length: " + bytes.length + "\r\n" +
-                    "Cache-Control: max-age=3600\r\n\r\n";
+                    "Cache-Control: public, max-age=86400\r\n\r\n";
             out.write(header.getBytes());
             out.write(bytes);
         } catch (IOException e) {
@@ -290,7 +526,7 @@ public class LocalHttpServer {
         if (name.endsWith(".mp3") || name.endsWith(".wav") || name.endsWith(".ogg") || name.endsWith(".m4a") || name.endsWith(".flac")) return "audio";
         if (name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".webp") || name.endsWith(".gif")) return "image";
         if (name.endsWith(".pdf")) return "pdf";
-        if (name.endsWith(".txt") || name.endsWith(".json") || name.endsWith(".py") || name.endsWith(".log") || name.endsWith(".md")) return "code";
+        if (name.endsWith(".txt") || name.endsWith(".json") || name.endsWith(".py") || name.endsWith(".log") || name.endsWith(".md") || name.endsWith(".js") || name.endsWith(".html") || name.endsWith(".css")) return "code";
         if (name.endsWith(".zip") || name.endsWith(".tar") || name.endsWith(".rar") || name.endsWith(".7z")) return "archive";
         return "file";
     }
