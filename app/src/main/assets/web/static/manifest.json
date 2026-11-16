@@ -1,0 +1,24 @@
+{
+  "name": "FileShare",
+  "short_name": "FileShare",
+  "description": "Local Network File Transfer & Media Server",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#7c3aed",
+  "orientation": "any",
+  "icons": [
+    {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ],
+  "categories": ["utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Browse Files",
+      "short_name": "Browse",
+      "description": "Open the file browser",
+      "url": "/",
+      "icons": [{"src": "/static/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}
