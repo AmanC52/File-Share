@@ -1,13 +1,19 @@
 package com.antigravity.fileshare;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.net.wifi.WifiManager;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.google.zxing.common.BitMatrix;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class NetworkUtils {
 
@@ -38,25 +44,32 @@ public class NetworkUtils {
     }
 
     /**
-     * Generates a clean QR code bitmap natively.
+     * Generates a 100% standard, high-contrast QR code bitmap using ZXing.
      */
     public static Bitmap generateQrBitmap(String text, int width, int height) {
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        bitmap.eraseColor(Color.WHITE);
-        // Fallback pattern if external generator not bundled
-        int blockSize = width / 25;
-        for (int i = 0; i < 25; i++) {
-            for (int j = 0; j < 25; j++) {
-                int hash = (text + i + j).hashCode();
-                if ((hash % 2 == 0 && (i < 7 && j < 7 || i > 17 && j < 7 || i < 7 && j > 17)) || (hash % 3 == 0)) {
-                    for (int x = 0; x < blockSize; x++) {
-                        for (int y = 0; y < blockSize; y++) {
-                            bitmap.setPixel(Math.min(width - 1, i * blockSize + x), Math.min(height - 1, j * blockSize + y), Color.BLACK);
-                        }
-                    }
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+            hints.put(EncodeHintType.MARGIN, 1);
+
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
+
+            int matrixWidth = bitMatrix.getWidth();
+            int matrixHeight = bitMatrix.getHeight();
+            Bitmap bitmap = Bitmap.createBitmap(matrixWidth, matrixHeight, Bitmap.Config.ARGB_8888);
+
+            for (int x = 0; x < matrixWidth; x++) {
+                for (int y = 0; y < matrixHeight; y++) {
+                    bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
                 }
             }
+            return bitmap;
+        } catch (Exception e) {
+            Bitmap fallback = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            fallback.eraseColor(Color.WHITE);
+            return fallback;
         }
-        return bitmap;
     }
 }
