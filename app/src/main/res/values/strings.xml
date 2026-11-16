@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">FileShare Mobile</string>
+    <string name="start_server">START SERVER</string>
+    <string name="stop_server">STOP SERVER</string>
+    <string name="server_offline">SERVER OFFLINE</string>
+    <string name="server_online">SERVER ONLINE</string>
+    <string name="copy_url">Copy Link</string>
+    <string name="open_browser">Open Web</string>
+    <string name="shared_folder">Shared Storage</string>
+    <string name="scan_qr_desc">Scan this QR Code from PC, TV or phone to connect</string>
+</resources>
