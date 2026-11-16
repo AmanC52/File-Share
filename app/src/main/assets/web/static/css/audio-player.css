@@ -1,0 +1,114 @@
+/* ==========================================================================
+   audio-player.css - Modern Music Player, Audio Visualizer & Playlist
+   ========================================================================== */
+
+#music-player {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: var(--radius-full);
+    padding: 0.55rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    box-shadow: 0 16px 48px rgba(99, 102, 241, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+    z-index: 100;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+    pointer-events: none;
+    max-width: 95%;
+    width: max-content;
+}
+
+#music-player.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+}
+
+.music-disc-icon {
+    font-size: 1.6rem;
+    animation: spinDisc 6s linear infinite;
+    display: inline-block;
+}
+
+.music-disc-icon.paused {
+    animation-play-state: paused;
+}
+
+@keyframes spinDisc {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.audio-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+    max-width: 220px;
+}
+
+#audio-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+}
+
+#audio-artist {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Audio Visualizer Canvas */
+#audio-visualizer-canvas {
+    width: 90px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.audio-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.audio-btn {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.audio-btn:hover {
+    color: var(--accent);
+    transform: scale(1.15);
+}
+
+.audio-btn.active {
+    color: var(--accent);
+    background: var(--accent-glow);
+}
+
+/* Native audio fallback styling */
+audio#audio-element {
+    height: 34px;
+    outline: none;
+    border-radius: var(--radius-full);
+}
