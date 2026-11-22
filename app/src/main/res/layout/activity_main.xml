@@ -4,75 +4,179 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:overScrollMode="never">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp"
-        android:gravity="center_horizontal">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="36dp">
 
-        <!-- Top Header & App Logo -->
+        <!-- Top Header & App Branding -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="20dp">
 
-            <TextView
+            <!-- App Logo Badge -->
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="FileShare Logo"
+                android:layout_marginEnd="12dp" />
+
+            <!-- Title & Subtitle -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="🚀 FileShare Mobile"
-                android:textColor="@color/text_white"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FileShare"
+                    android:textColor="@color/text_white"
+                    android:textSize="21sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="High-Speed Local Transfer"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Status Indicator Pill -->
             <TextView
                 android:id="@+id/tv_status_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="OFFLINE"
-                android:textColor="@color/status_red"
+                android:text="⚪ IDLE"
+                android:textColor="@color/text_muted"
                 android:textStyle="bold"
-                android:textSize="12sp"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="5dp"
-                android:background="@drawable/bg_status_badge" />
+                android:textSize="11sp"
+                android:letterSpacing="0.06"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="6dp"
+                android:background="@drawable/bg_status_badge_offline" />
         </LinearLayout>
 
-        <!-- Circular Power Button -->
-        <FrameLayout
-            android:layout_width="wrap_content"
+        <!-- Network Info Chip Strip -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="16dp">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_modern_card"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginBottom="24dp">
 
-            <Button
-                android:id="@+id/btn_toggle_server"
-                android:layout_width="160dp"
-                android:layout_height="160dp"
-                android:background="@drawable/bg_power_button"
-                android:text="START"
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_wifi_symbol"
+                app:tint="@color/accent_cyan"
+                android:contentDescription="Wi-Fi"
+                android:layout_marginEnd="10dp" />
+
+            <TextView
+                android:id="@+id/tv_network_info"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Checking Network..."
+                android:textColor="@color/text_body"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/tv_network_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wi-Fi Drive"
+                android:textColor="@color/accent_cyan"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- HERO START/STOP SHARING CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/bg_modern_card"
+            android:paddingVertical="32dp"
+            android:paddingHorizontal="20dp"
+            android:layout_marginBottom="24dp">
+
+            <!-- Circular Halo & Dial Container -->
+            <FrameLayout
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_marginBottom="20dp">
+
+                <!-- Outer Halo Wave Rings -->
+                <View
+                    android:id="@+id/view_hero_halo"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:background="@drawable/bg_hero_halo" />
+
+                <!-- Hero Action Button Dial -->
+                <FrameLayout
+                    android:id="@+id/btn_toggle_server"
+                    android:layout_width="136dp"
+                    android:layout_height="136dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_hero_button_offline"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/iv_hero_icon"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_power_symbol"
+                        app:tint="@color/text_white"
+                        android:contentDescription="Start Sharing" />
+                </FrameLayout>
+            </FrameLayout>
+
+            <!-- Hero Action Titles -->
+            <TextView
+                android:id="@+id/tv_hero_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start File Sharing"
                 android:textColor="@color/text_white"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                app:backgroundTint="@null" />
-        </FrameLayout>
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="6dp" />
 
-        <!-- Tap Hint -->
-        <TextView
-            android:id="@+id/tv_toggle_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tap START to turn phone into Wi-Fi Server"
-            android:textColor="@color/text_muted"
-            android:textSize="13sp"
-            android:layout_marginBottom="24dp" />
+            <TextView
+                android:id="@+id/tv_toggle_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap above to make your phone discoverable"
+                android:textColor="@color/text_muted"
+                android:textSize="13sp"
+                android:textAlignment="center" />
+        </LinearLayout>
 
-        <!-- Server Active Info Container -->
+        <!-- ACTIVE SERVER SECTION (Visible when server is running) -->
         <LinearLayout
             android:id="@+id/layout_server_info"
             android:layout_width="match_parent"
@@ -80,20 +184,60 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- URL Card -->
+            <!-- White Glass QR Code Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/bg_card"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp">
+                android:background="@drawable/bg_qr_card"
+                android:paddingVertical="24dp"
+                android:paddingHorizontal="20dp"
+                android:gravity="center_horizontal"
+                android:elevation="3dp"
+                android:layout_marginBottom="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🌐 SERVER ADDRESS"
-                    android:textColor="@color/vlc_orange"
+                    android:text="📷 SCAN TO CONNECT"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Point camera or laptop webcam to open files"
+                    android:textColor="#64748B"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- QR Code View -->
+                <ImageView
+                    android:id="@+id/iv_qr_code"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:background="#FFFFFF"
+                    android:contentDescription="Connection QR Code"
+                    android:layout_marginBottom="12dp" />
+            </LinearLayout>
+
+            <!-- Server URL & Action Buttons Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_modern_card"
+                android:padding="20dp"
+                android:layout_marginBottom="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌐 WEB BROWSER ADDRESS"
+                    android:textColor="@color/accent_cyan"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
@@ -108,87 +252,115 @@
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:fontFamily="monospace"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="16dp" />
 
+                <!-- Action Buttons: Copy, Open Web, Share -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <Button
+                    <!-- Copy Button -->
+                    <LinearLayout
                         android:id="@+id/btn_copy_url"
                         android:layout_width="0dp"
-                        android:layout_height="42dp"
+                        android:layout_height="44dp"
                         android:layout_weight="1"
-                        android:text="📋 Copy Link"
-                        android:textColor="@color/text_white"
-                        android:textSize="13sp"
-                        android:backgroundTint="@color/surface_card"
-                        android:layout_marginEnd="6dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_pill_button"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="6dp">
 
-                    <Button
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_copy_symbol"
+                            app:tint="@color/text_white"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Copy"
+                            android:textColor="@color/text_white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Open Web Button -->
+                    <LinearLayout
                         android:id="@+id/btn_open_web"
                         android:layout_width="0dp"
-                        android:layout_height="42dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1.2"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_pill_button_primary"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginHorizontal="3dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_browser_symbol"
+                            app:tint="@color/text_white"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Open Web"
+                            android:textColor="@color/text_white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Share Button -->
+                    <LinearLayout
+                        android:id="@+id/btn_share_url"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
                         android:layout_weight="1"
-                        android:text="↗️ Open in Web"
-                        android:textColor="@color/text_white"
-                        android:textSize="13sp"
-                        android:backgroundTint="@color/accent_purple"
-                        android:layout_marginStart="6dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_pill_button"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginStart="6dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_share_symbol"
+                            app:tint="@color/text_white"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Share"
+                            android:textColor="@color/text_white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- QR Code Card -->
+            <!-- Storage Info Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/bg_card"
-                android:padding="20dp"
-                android:gravity="center_horizontal"
-                android:layout_marginBottom="16dp">
+                android:background="@drawable/bg_modern_card"
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📱 SCAN TO CONNECT"
-                    android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:layout_marginBottom="12dp" />
-
-                <ImageView
-                    android:id="@+id/iv_qr_code"
-                    android:layout_width="180dp"
-                    android:layout_height="180dp"
-                    android:background="#FFFFFF"
-                    android:padding="8dp"
-                    android:contentDescription="QR Code"
-                    android:layout_marginBottom="12dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/scan_qr_desc"
-                    android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    android:textAlignment="center" />
-            </LinearLayout>
-
-            <!-- Connected Clients & Storage Info -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_card"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📂 SHARED STORAGE"
+                    android:text="📂 SHARED STORAGE FOLDER"
                     android:textColor="@color/text_muted"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -200,10 +372,150 @@
                     android:layout_height="wrap_content"
                     android:text="/storage/emulated/0 (Internal Storage)"
                     android:textColor="@color/text_white"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:fontFamily="monospace" />
             </LinearLayout>
+        </LinearLayout>
 
+        <!-- OFFLINE GUIDES & FEATURES (Visible when idle) -->
+        <LinearLayout
+            android:id="@+id/layout_offline_features"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HOW IT WORKS"
+                android:textColor="@color/text_subtle"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:layout_marginBottom="12dp"
+                android:layout_marginStart="4dp" />
+
+            <!-- Feature 1: High Speed -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_modern_card"
+                android:padding="16dp"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:src="@drawable/ic_lightning"
+                    android:background="@drawable/bg_status_badge_offline"
+                    android:padding="8dp"
+                    android:layout_marginEnd="14dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Blazing Fast Speeds"
+                        android:textColor="@color/text_white"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Direct Wi-Fi transfer at up to 50 MB/s without using mobile data."
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Feature 2: Cross Platform -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_modern_card"
+                android:padding="16dp"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:src="@drawable/ic_devices"
+                    android:background="@drawable/bg_status_badge_offline"
+                    android:padding="8dp"
+                    android:layout_marginEnd="14dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Any Device, Any Browser"
+                        android:textColor="@color/text_white"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Connect from Windows, Mac, Linux, iOS, or Android without extra software."
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Feature 3: Privacy & Security -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_modern_card"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:src="@drawable/ic_shield_check"
+                    android:background="@drawable/bg_status_badge_offline"
+                    android:padding="8dp"
+                    android:layout_marginEnd="14dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="100% Private &amp; Local"
+                        android:textColor="@color/text_white"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Files never leave your local Wi-Fi. Zero cloud tracking or compression."
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

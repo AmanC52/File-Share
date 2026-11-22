@@ -42,19 +42,19 @@ jobs:
     - name: Publish Direct GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v2.0
-        name: "FileShare v2.0 (Mobile APK & Windows App)"
+        tag_name: v2.1
+        name: "FileShare v2.1 (Sleek Modern Start Hub & UI Overhaul)"
         body: |
-          # 🚀 FileShare v2.0 Release
+          # 🚀 FileShare v2.1 Official Release
 
           ### 📥 Direct One-Click Download:
-          - 📱 **[Download FileShareMobile.apk](https://github.com/AmanC52/File-Share/releases/download/v2.0/FileShareMobile.apk)**
+          - 📱 **[Download FileShareMobile.apk](https://github.com/AmanC52/File-Share/releases/download/v2.1/FileShareMobile.apk)**
           
-          ### ✨ Features & Fixes:
-          - 🎨 **New Brand Icon**: Custom glowing rocket & speed-wave app icon across all Android densities.
-          - 🔲 **Real QR Code Engine**: ZXing integration for instant connection QR code on laptop browser.
-          - 📤 **High-Speed File Uploads**: Streaming multipart upload parser directly into phone storage.
-          - ⚡ **Zero-Lag UI**: In-memory caching for lightning fast file browsing.
+          ### ✨ What's New in v2.1:
+          - 🎨 **Modern Start Hub Redesign**: Replaced the plain button with a sleek glowing interactive Power Dial with radar halo wave animations.
+          - 📱 **Clean UI & Glassmorphism ("Safai se UI")**: Modern card styling, crisp white QR code container, quick Action buttons (Copy, Open Web, Native Share).
+          - 📶 **Live Network Status Bar**: Real-time Wi-Fi status, Local IP, and offline feature guides.
+          - 🚀 **Brand Icon**: Official glowing rocket & speed-wave branding embedded in header and app launcher.
         files: FileShareMobile.apk
         prerelease: false
       env:
